@@ -1,0 +1,142 @@
+!type expr =
+!  |Integer of int
+!  | Floatpt of float
+!  | Strlit of string
+!  | Var of string
+!  | Nil
+!  | Binop of string*expr*expr
+!  | Uniop of string*expr
+!  | Ifelse of expr*expr*expr
+!  | Whileloop of expr*expr
+!  | Define of LBox<string>*expr
+!  | Lambda of (string list)*expr
+!  | Let of LBox<string>*expr*LBox<expr>
+!  | Quote of expr
+!  | Setq of LBox<string>*expr
+!  | Sequence of LBox<expr> list
+!// may want to change above for a more standard case for function application:
+!  // | Apply of expr*(expr list)
+!  | Beginseq of LBox<expr> list
+!  // type expressions  
+!  | TypedVar of (lltype*string)
+!  | TypeExpr of lltype
+!  | Label of string   // not a proper expression - just a temporary
+!  | Error
+!  //  | Continuation of (expr -> expr)    // shouldn't need
+!and lltype =
+!  | LLint | LLfloat | LLstring
+!  | LList of lltype | LLtuple of lltype list
+!  | LLfun of (lltype list)*lltype
+!  | LLunknown | LLuntypable | LLvar of string
+
+valuetype expr
+
+nonterminal Q 
+nonterminal U expr
+nonterminal A expr
+nonterminal C expr
+nonterminal K expr
+
+!//Math Operators
+lexterminal PLUS +
+lexterminal MINUS -
+lexterminal TIMES *
+lexterminal DIVIDE /
+lexterminal MODULO %
+lexterminal EXPONENT ^
+lexterminal EQUALS =
+lexterminal PLUSPLUS ++
+lexterminal MINUSMINUS --
+
+!//Logic Operators
+lexterminal OR ||
+lexterminal AND &&
+lexterminal NOT !
+lexterminal EQEQ ==
+lexterminal NOTEQ !=
+
+!//Primitive Types
+lexterminal BOOLEAN boolean
+lexterminal INT int
+lexterminal FLOAT float
+
+!//Syntax Components
+lexterminal DOT .
+lexterminal COMMA ,
+lexterminal COLON :
+lexterminal SEMICOLON ;
+
+!//Grouping Symbols
+lexterminal LBRACKET [
+lexterminal RBRACKET ]
+lexterminal LCURLY {
+lexterminal RCURLY } 
+
+!//Declaration Symbols
+lexterminal LET let
+lexterminal VAR var
+
+
+!//Loops and Decision Statements
+lexterminal IF if
+lexterminal ELSE else
+lexterminal FOR for
+lexterminal WHILE while
+
+!//Value Literals
+lexterminal TRUE true
+lexterminal FALSE false
+lexterminal NULL null
+
+!//Value Terminals
+vallueterminal VAR ~ string ~ Alphanum ~ (fun x-> x)
+valueterminal INTEGER_LITERAL ~ int ~ Num ~ int
+valueterminal FLOAT_LITERAL ~ float ~ Float ~ float
+valueterminal STRING_LITERAL ~ string ~ Alphanum ~ (fun x -> x)
+
+!//NON-TERMINAL SYMBOLS
+
+!//Non-Terminal Typedefs
+nonterminal  literal int
+nonterminal  type int
+nonterminal  primitive_type int
+nonterminal BOOLEAN_LITERAL
+
+!//Non-Terminal Loop Constructs
+nonterminal  while_statement int
+nonterminal  for_statement int
+
+
+
+
+
+
+
+
+
+
+topsym  goal
+
+
+# top-level rule, only one that returns true
+goal --> compilation_unit { true }
+
+
+literal --> INTEGER_LITERAL
+literal --> FLOAT_LITERAL
+!//literal --> BOOLEAN_LITERAL
+literal --> STRING_LITERAL
+literal --> NULL
+
+primitive_type --> numeric_type
+primitive_type --> BOOLEAN
+numeric_type --> INT
+numeric_type --> FLOAT
+
+
+TYPE --> var | integer | string| float | (Expr )
+BINARYOPERATOR --> +:x | - { Label(x) } 
+
+BINOP --> TYPE BINARYOPERATOR TYPE
+
+number_types -> 
