@@ -111,15 +111,45 @@ nonterminal  for_statement int
 
 
 
+!//Non-Terminal Binops
+!//Precedence Level 0
+nonterminal EXPONENT int
+!//Precedence Level 1
+nonterminal MULTIPLICATION int
+nonterminal DIVISION int
+nonterminal MODULO int
+!//Precedence Level 2
+nonterminal BINOPADDITION
+nonterminal ADDITION int 
+nonterminal SUBTRACTION int
+!//Precedence Level 3
+nonterminal AND int
+nonterminal OR int
+!//Precedence Level 4
+nonterminal BINOPEQUALITY int
+nonterminal EQUALS int
+nonterminal NOTEQUALS int
+nonterminal EQUALSEQ int
+nonterminal LTE int
+nonterminal GTE int
+nonterminal LT int
+nonterminal GT int
+nonterminal CONS int
 
-
-
+BINOP_EQUALITY_EXPR -> OR_EXPR: x { x }
+BINOP_EQUALITY_EXPR -> BINOP_EQUALITY_EXPR:x BINOP_EQUALITY:e OR_EXPR:y { Binop(e,x,y} } 
+BINOP_EQUALITY -> EQUALS { "="}
+BINOP_EQUALITY -> NOTEQUALS { "neq" }
+BINOP_EQUALITY -> EQUALSEQ {"eq" }
+BINOP_EQUALITY -> LTE { "<=" }
+BINOP_EQUALITY -> GTE { ">=" }
+BINOP_EQUALITY -> LT { "<" }
+BINOP_EQUALITY -> GT { ">" }
+BINOP_EQUALITY -> CONS { "cons" }
 
 topsym  goal
 
-
-# top-level rule, only one that returns true
-goal --> compilation_unit { true }
+# ["+";"-";"*";"/";"%";"^";"=";"<";">";"<=";">=";"cons";"neq";"eq";"and";"or"] 
 
 
 literal --> INTEGER_LITERAL
@@ -135,6 +165,8 @@ numeric_type --> FLOAT
 
 
 TYPE --> var | integer | string| float | (Expr )
+
+
 BINARYOPERATOR --> +:x | - { Label(x) } 
 
 BINOP --> TYPE BINARYOPERATOR TYPE
