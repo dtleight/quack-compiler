@@ -1,0 +1,9 @@
+define x:int = 3;
+define y = 1;
+define z:float = 124.000;
+define a = 3.14;
+define b = 'test';
+x;
+y;
+z;
+a;

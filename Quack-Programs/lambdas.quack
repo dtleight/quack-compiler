@@ -1,0 +1,3 @@
+define lt = lambda t.t + 1;
+define jt = lambda c,y. c + y;
+define qt  = lambda x:int, y:int. 2 * 3;

@@ -1,0 +1,7 @@
+define x:int = 3;
+define y = 3;
+define s = 'abc';
+define lt = lambda t.t + 1;
+define jt = lambda x,y. x + y;
+define qt  = lambda x:int, y:int. x * y;
+define tq = int lambda x:int. x;

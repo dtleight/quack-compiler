@@ -1,11 +1,3 @@
-!//AST modifications
-!// 1. Sequences are now Applys and take optional arguments
-!// 2. Code blocks are now a thing
-!// 3. BeginSeq's are ListLiterals and have different syntax
-!// 4. Vars will now  be LBox'ed
-!//Questions for Liang
-!// 1. Is there a way to fix the Makefile to compile my files
-!// 2. Is there a way to make strings use quotes
 !type expr =
 !  |Integer of int
 !  | Floatpt of float
@@ -19,14 +11,13 @@
 !  | Define of LBox<string>*expr
 !  | TypedDefine of LBox<lltype*string>*expr
 !  | Lambda of (string list)*expr
-!  | TypedLambda of ((lltype*string) list)*lltype*LBox<expr>
+!  | TypedLambda of ((lltype*string) list)*lltype*expr
 !  | Let of LBox<string>*expr*LBox<expr>
 !  | TypedLet of LBox<lltype*string>*expr*LBox<expr>
 !  | Quote of expr
 !  | Setq of LBox<string>*expr
-!  | Apply of string * LBox<expr> list option
-!  | ListLiteral of LBox<expr> list
-!  | CodeBlock of LBox<expr> list
+!  | Sequence of LBox<expr> list
+!  | Beginseq of LBox<expr> list
 !  // type expressions
 !  | TypeExpr of lltype
 !  | TypedVal of (lltype*expr) 
@@ -42,7 +33,7 @@ lexattribute line_comment #
 
 valuetype expr
 
-terminals ; '
+terminals ;
 
 !//-------------------------------------------------------
 !//LEX TERMINALS
@@ -127,6 +118,7 @@ lexterminal NIL nil
 valueterminal VAR ~ string ~ Alphanum ~ (fun x-> x)
 valueterminal INTEGER_LITERAL ~ int ~ Num ~ int
 valueterminal FLOAT_LITERAL ~ float ~ Float ~ float
+valueterminal STRING_LITERAL ~ string ~ Alphanum ~ (fun x -> x)
 
 !//-------------------------------------------------------
 !//PRODUCTION DECLARATIONS
@@ -153,7 +145,6 @@ nonterminal VAR_SEQ (lltype*string) list
 nonterminal STATEMENT_SEQ LBox<expr> list
 nonterminal LIST_LITERAL expr
 nonterminal CODE_BLOCK expr
-nonterminal LAMBDA_BLOCK expr
 
 !//Operators
 nonterminal UNIOP String
@@ -191,10 +182,9 @@ TYPE_PREFIX --> UNTYPED_PREFIX:x { x }
 TYPE_PREFIX --> VAR:v COLON UNIT_TYPE:t { (t,v) }
 
 !//UNIT_EXPR --> LBRACKET EXPR_SEQ:x RBRACKET {}
-UNIT_EXPR --> LPAREN STATEMENT:x RPAREN { x }
+UNIT_EXPR --> LPAREN EXPR:x RPAREN { x }
 UNIT_EXPR --> VAR:x { Var(x) }
-UNIT_EXPR --> VAR:x LPAREN LIST_SEQ?:l RPAREN {Apply(x, l)}
-UNIT_EXPR --> ' VAR:x ' { Strlit(x) }
+UNIT_EXPR --> STRING_LITERAL:x { Strlit(x) }
 UNIT_EXPR --> INTEGER_LITERAL:x { Integer(x) }
 UNIT_EXPR --> FLOAT_LITERAL:x { Floatpt(x) }
 UNIT_EXPR --> NIL { Nil }
@@ -241,8 +231,8 @@ BINOP_EQUAL_OPER --> GT { ">" }
 BINOP_EQUAL_OPER --> CONS { "cons" }
 
 LAMBDA_EXPR --> BINOP_EQUALITY_EXPR:x { x }
-LAMBDA_EXPR --> LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,LLunknown,x) } 
-LAMBDA_EXPR --> UNIT_TYPE:t LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,t,x) } 
+LAMBDA_EXPR --> LAMBDA VAR_SEQ:v DOT BINOP_EQUALITY_EXPR:x { TypedLambda(v,LLunknown,x) } 
+LAMBDA_EXPR --> UNIT_TYPE:t LAMBDA VAR_SEQ:v DOT BINOP_EQUALITY_EXPR:x { TypedLambda(v,t,x) } 
 
 LET_EXPR --> LAMBDA_EXPR:x { x }
 LET_EXPR --> LET TYPE_PREFIX:[d] EQUALS LAMBDA_EXPR:x IN LAMBDA_EXPR:[y] {TypedLet(d,x,y)}
@@ -255,34 +245,31 @@ EXPR --> DEFINE_EXPR:x { x }
 !//THIS IS A TEMPORARY INJECTION FOR A LIST LITERAL- THIS NEEDS TO CHANGE
 EXPR --> LIST_LITERAL:x { x }
 
-!//EXPR_SEQ --> EXPR:[e] ;  EXPR_SEQ:seq  { e:: seq }
-!//EXPR_SEQ --> EXPR:[e] ;  { [e] } 
+EXPR_SEQ --> EXPR:[e] ;  EXPR_SEQ:seq  { e:: seq }
+EXPR_SEQ --> EXPR:[e] ;  { [e] } 
 VAR_SEQ --> TYPE_PREFIX:e COMMA VAR_SEQ:seq { e::seq }
 VAR_SEQ --> TYPE_PREFIX:e { [e] }  
 LIST_SEQ --> EXPR:[e] COMMA LIST_SEQ:seq { e::seq }
 LIST_SEQ --> EXPR:[e] { [e] }
 
-LIST_LITERAL --> LBRACKET LIST_SEQ:x RBRACKET { ListLiteral(x) }
-
-LAMBDA_BLOCK --> LCURLY PROGRAM:x RCURLY { x }
-LAMBDA_BLOCK --> EXPR:x {x}
+LIST_LITERAL --> LBRACKET LIST_SEQ:x RBRACKET { Sequence(x) }
 
 CODE_BLOCK --> EXPR:x ; {x}
-CODE_BLOCK --> LCURLY PROGRAM:x RCURLY { x }
+CODE_BLOCK --> LCURLY STATEMENT:x RCURLY { x }
 
-!//EXPR_STATEMENT --> EXPR_SEQ:e { CodeBlock(e) } 
+EXPR_STATEMENT --> EXPR_SEQ:e { Beginseq(e) } 
 
 LOOP_STATEMENT --> WHILE LPAREN EXPR:p RPAREN CODE_BLOCK:x { Whileloop(p,x) }
 
 SELECT_STATEMENT --> IF LPAREN EXPR:p RPAREN CODE_BLOCK:x ELSE CODE_BLOCK:y { Ifelse(p,x,y)}
 
-STATEMENT--> EXPR:x ; { x }
+STATEMENT--> EXPR_STATEMENT:x { x }
 STATEMENT --> LOOP_STATEMENT:x { x }
 STATEMENT --> SELECT_STATEMENT:x { x }
 
 STATEMENT_SEQ --> STATEMENT:[e] STATEMENT_SEQ:seq  { e::seq }
 STATEMENT_SEQ --> STATEMENT:[e]  { [e] } 
 
-PROGRAM --> STATEMENT_SEQ:x { CodeBlock(x) }
+PROGRAM --> STATEMENT_SEQ:x { Beginseq(x) }
 
 EOF

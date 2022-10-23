@@ -1,0 +1,14 @@
+while(a=b)
+{
+ if(a = b)
+  {
+   a && b;
+  }
+  else
+ {
+  b || c;
+ }
+}
+while(b=a)
+ b && c;
+
