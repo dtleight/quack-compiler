@@ -1,3 +1,6 @@
+define a = 3;
 a + b;
 b + c;
 c + d;
+
+print a;

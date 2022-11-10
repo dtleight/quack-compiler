@@ -1,0 +1,5 @@
+yoink runSequelCommand from 'somedatabaselibrary.fs';
+
+define x:String = "CREATE TABLE if NOT EXIST"
+
+runSequelCommand(x);

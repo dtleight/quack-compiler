@@ -1,21 +1,19 @@
 !//AST modifications
-!// 1. Sequences are now Applys and take optional arguments
+!// 1. Sequences are now Applys
 !// 2. Code blocks are now a thing
 !// 3. BeginSeq's are ListLiterals and have different syntax
-!// 4. Vars will now  be LBox'ed
-!//Questions for Liang
-!// 1. Is there a way to fix the Makefile to compile my files
-!// 2. Is there a way to make strings use quotes
+!// 4. Vars are now  be LBox'ed
+!// 5. While/If Conditions are now LBox'ed
 !type expr =
 !  |Integer of int
 !  | Floatpt of float
 !  | Strlit of string
-!  | Var of string
+!  | Var of LBox<string>
 !  | Nil
 !  | Binop of string*expr*expr
 !  | Uniop of string*expr
-!  | Ifelse of expr*expr*expr
-!  | Whileloop of expr*expr
+!  | Ifelse of LBox<expr>*expr*expr
+!  | Whileloop of LBox<expr>*expr
 !  | Define of LBox<string>*expr
 !  | TypedDefine of LBox<lltype*string>*expr
 !  | Lambda of (string list)*expr
@@ -24,7 +22,7 @@
 !  | TypedLet of LBox<lltype*string>*expr*LBox<expr>
 !  | Quote of expr
 !  | Setq of LBox<string>*expr
-!  | Apply of string * LBox<expr> list option
+!  | Apply of LBox<string> * LBox<expr> list
 !  | ListLiteral of LBox<expr> list
 !  | CodeBlock of LBox<expr> list
 !  // type expressions
@@ -127,6 +125,7 @@ lexterminal NIL nil
 valueterminal VAR ~ string ~ Alphanum ~ (fun x-> x)
 valueterminal INTEGER_LITERAL ~ int ~ Num ~ int
 valueterminal FLOAT_LITERAL ~ float ~ Float ~ float
+valueterminal STRING_LITERAL ~ string ~ StrLit ~ (fun x -> x)
 
 !//-------------------------------------------------------
 !//PRODUCTION DECLARATIONS
@@ -192,9 +191,9 @@ TYPE_PREFIX --> VAR:v COLON UNIT_TYPE:t { (t,v) }
 
 !//UNIT_EXPR --> LBRACKET EXPR_SEQ:x RBRACKET {}
 UNIT_EXPR --> LPAREN STATEMENT:x RPAREN { x }
-UNIT_EXPR --> VAR:x { Var(x) }
-UNIT_EXPR --> VAR:x LPAREN LIST_SEQ?:l RPAREN {Apply(x, l)}
-UNIT_EXPR --> ' VAR:x ' { Strlit(x) }
+UNIT_EXPR --> VAR:[x] { Var(x) }
+UNIT_EXPR --> VAR:[x] LPAREN LIST_SEQ:l RPAREN {Apply(x, l)}
+UNIT_EXPR --> STRING_LITERAL:x { Strlit(x) }
 UNIT_EXPR --> INTEGER_LITERAL:x { Integer(x) }
 UNIT_EXPR --> FLOAT_LITERAL:x { Floatpt(x) }
 UNIT_EXPR --> NIL { Nil }
@@ -261,6 +260,7 @@ VAR_SEQ --> TYPE_PREFIX:e COMMA VAR_SEQ:seq { e::seq }
 VAR_SEQ --> TYPE_PREFIX:e { [e] }  
 LIST_SEQ --> EXPR:[e] COMMA LIST_SEQ:seq { e::seq }
 LIST_SEQ --> EXPR:[e] { [e] }
+LIST_SEQ --> { [] }
 
 LIST_LITERAL --> LBRACKET LIST_SEQ:x RBRACKET { ListLiteral(x) }
 
@@ -272,9 +272,9 @@ CODE_BLOCK --> LCURLY PROGRAM:x RCURLY { x }
 
 !//EXPR_STATEMENT --> EXPR_SEQ:e { CodeBlock(e) } 
 
-LOOP_STATEMENT --> WHILE LPAREN EXPR:p RPAREN CODE_BLOCK:x { Whileloop(p,x) }
+LOOP_STATEMENT --> WHILE LPAREN EXPR:[p] RPAREN CODE_BLOCK:x { Whileloop(p,x) }
 
-SELECT_STATEMENT --> IF LPAREN EXPR:p RPAREN CODE_BLOCK:x ELSE CODE_BLOCK:y { Ifelse(p,x,y)}
+SELECT_STATEMENT --> IF LPAREN EXPR:[p] RPAREN CODE_BLOCK:x ELSE CODE_BLOCK:y { Ifelse(p,x,y)}
 
 STATEMENT--> EXPR:x ; { x }
 STATEMENT --> LOOP_STATEMENT:x { x }
