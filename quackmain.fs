@@ -13,15 +13,21 @@ open Quack
 // create parser
 let parser1 = make_parser();
 
+let mut inFile = "Quack-Program/test.quack";;
+
+let writeToFile(filename:string, program:string) = 
+  File.WriteAllText(filename.Replace(".quack", ".ll").Replace("Quack-Programs","Quack-Programs/Outputs"),program);
+
 let runInteractive() = 
   Console.Write("Enter Expression: ");
   let lexer1 = quacklexer<unit>(Console.ReadLine());
   parse_with(parser1,lexer1);;
+  
 
 let runFileBased(filename) = 
   let lines = File.ReadAllText(filename)
   let lexer1 = quacklexer<unit>(lines);
-  parse_with(parser1,lexer1);;
+  parse_with(parser1,lexer1);
 // create lexer
 
 let args = System.Environment.GetCommandLineArgs()
@@ -52,6 +58,7 @@ let main_function = {
   return_type = Basic("void");
   body = b;
   attributes = attrs;
+  bblocator = HashMap<string,int>();
  };;
  
 
@@ -67,7 +74,9 @@ let main_function = {
  printfn "--------------------";;
  printfn "Code Generation";;
  printfn "--------------------";;
- quack_compiler.add_basic_block(main_function);
+ quack_compiler.add_basic_block(main_function, "mainstart", Vec<BasicBlock>());
  quack_compiler.program.functions.Add(main_function);
  quack_compiler.compile_expression(result,main_function) |> ignore;
- printfn "%s" (programToString(quack_compiler.program));;
+ let output = programToString(quack_compiler.program);;
+ printfn "%s" output;;
+ writeToFile(args.[1],output);;
