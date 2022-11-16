@@ -91,7 +91,7 @@ type SymbolTable =  // wrapping structure for symbol table frames
       | Binop("and",a,b) | Binop("or",a,b) ->
         let (atype,btype) = (this.infer_type(a), this.infer_type(b))
         if atype=btype && (atype=LLint) then LLint else LLuntypable
-      | Binop("eq",a,b) | Binop("neq",a,b) | Binop("<",a,b) | Binop(">",a,b) | Binop("<=",a,b) | Binop(">=",a,b) ->
+      | Binop("eq",a,b) | Binop("!=",a,b) | Binop("<",a,b) | Binop(">",a,b) | Binop("<=",a,b) | Binop(">=",a,b) ->
         let (atype,btype) = (this.infer_type(a), this.infer_type(b))
         if atype=btype && this.is_numeric(atype) then LLint else LLuntypable
       | Uniop("-",a) ->
