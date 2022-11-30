@@ -354,7 +354,11 @@ let programToString(program: LLVMprogram) =
  let prog = 
   {
     preamble = "target triple = \"x86_64-pc-windows-msvc19.33.31629\"\ndeclare void @lambda7c_printint(i32)\ndeclare void @lambda7c_printfloat(double)\ndeclare void @lambda7c_printstr(i8*)";
+<<<<<<< HEAD
     global_declarations = Vec<LLVMdeclaration>();
+=======
+    global_declarations = declarations;
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
     functions = Vec<LLVMFunction>();
     postamble = ""
   };;

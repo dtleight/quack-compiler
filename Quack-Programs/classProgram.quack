@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 //Test comment
 define x = 1;
 define y = 0;
@@ -20,3 +21,8 @@ while (x < 10)
   print("/n");
   x = x + 1;
 }
+=======
+define x = 1;
+x = x + 1;
+print x;
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802

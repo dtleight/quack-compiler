@@ -41,6 +41,7 @@ ALPHANUM=[A-Za-z_][A-Za-z0-9_]*
 %% 
 <YYINITIAL> {NEWLINE}+ { line_char = yychar+yytext().Length; return null; }
 <YYINITIAL> {NONNEWLINE_WHITE_SPACE_CHAR}+ { return null; }
+<<<<<<< HEAD
 <YYINITIAL> "||" { return new RawToken("||",yytext(),yyline,yychar-line_char,yychar); }
 <YYINITIAL> "not" { return new RawToken("not",yytext(),yyline,yychar-line_char,yychar); }
 <YYINITIAL> "nil" { return new RawToken("nil",yytext(),yyline,yychar-line_char,yychar); }
@@ -87,6 +88,55 @@ ALPHANUM=[A-Za-z_][A-Za-z0-9_]*
 <YYINITIAL> "*" { return new RawToken("*",yytext(),yyline,yychar-line_char,yychar); }
 <YYINITIAL> "else" { return new RawToken("else",yytext(),yyline,yychar-line_char,yychar); }
 <YYINITIAL> "%" { return new RawToken("%",yytext(),yyline,yychar-line_char,yychar); }
+=======
+<YYINITIAL> "in" { return new RawToken("in",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "{" { return new RawToken("{",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "]" { return new RawToken("]",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "eq" { return new RawToken("eq",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "." { return new RawToken(".",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "for" { return new RawToken("for",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "--" { return new RawToken("--",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "not" { return new RawToken("not",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "boolean" { return new RawToken("boolean",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "||" { return new RawToken("||",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "=" { return new RawToken("=",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "," { return new RawToken(",",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "~" { return new RawToken("~",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> ">" { return new RawToken(">",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "let" { return new RawToken("let",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "else" { return new RawToken("else",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "-" { return new RawToken("-",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "+" { return new RawToken("+",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "/" { return new RawToken("/",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "^" { return new RawToken("^",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "cdr" { return new RawToken("cdr",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "while" { return new RawToken("while",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "(" { return new RawToken("(",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "if" { return new RawToken("if",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "define" { return new RawToken("define",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "false" { return new RawToken("false",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "%" { return new RawToken("%",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "true" { return new RawToken("true",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> ")" { return new RawToken(")",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "++" { return new RawToken("++",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "<=" { return new RawToken("<=",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "print" { return new RawToken("print",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> ":" { return new RawToken(":",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "nil" { return new RawToken("nil",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "*" { return new RawToken("*",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> ">=" { return new RawToken(">=",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "<" { return new RawToken("<",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "!=" { return new RawToken("!=",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "cons" { return new RawToken("cons",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "[" { return new RawToken("[",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "car" { return new RawToken("car",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "int" { return new RawToken("int",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "&&" { return new RawToken("&&",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "}" { return new RawToken("}",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "String" { return new RawToken("String",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "lambda" { return new RawToken("lambda",yytext(),yyline,yychar-line_char,yychar); }
+<YYINITIAL> "float" { return new RawToken("float",yytext(),yyline,yychar-line_char,yychar); }
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 <YYINITIAL> ";" { return new RawToken(";",yytext(),yyline,yychar-line_char,yychar); }
 <YYINITIAL> "'" { return new RawToken("'",yytext(),yyline,yychar-line_char,yychar); }
 

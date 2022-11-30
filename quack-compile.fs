@@ -22,9 +22,12 @@ type LLVMCompiler = {
         | Some(Strlit(x)) -> x
         | _ -> "Bad things happening"
       Array_t(strValue.Replace("/n","x").Replace("\0a", "x").Replace("\00","x").Length-1, Basic("i8"))
+<<<<<<< HEAD
      | LLvar(name) -> Basic("i32")
      | LLpointer(pType) -> Pointer(this.translate_type(pType))
      | LLfun(args,rType) -> Func_t((args |> List.map(fun x -> this.translate_type(x))),this.translate_type(rType))
+=======
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
      | _ -> Basic("Terrible things happening")
      
   member this.translate_op(op:string) =
@@ -32,7 +35,11 @@ type LLVMCompiler = {
     //Math Operators
     | "+" -> "add"
     | "-" -> "sub"
+<<<<<<< HEAD
     | "*" -> "mul"
+=======
+    | "*" -> "mult"
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
     | "%" -> "srem"
     //Boolean Operators
     | "and" -> "and"
@@ -51,12 +58,15 @@ type LLVMCompiler = {
     match this.symbol_table.get_entry(var) with
       | Some(x) -> this.translate_type(x.typeof)
       | None -> Basic("void")
+<<<<<<< HEAD
   
   member this.vectorMap(l: 'a list, f: 'a->'b) =
     let rVec = Vec<'b>();
     for x in l do
       rVec.Add(f(x))
     rVec;
+=======
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
      
   member this.uniqueID(prefix:string) =
     sprintf "%s%d_%d" prefix this.gindex this.lindex
@@ -78,6 +88,7 @@ type LLVMCompiler = {
  
   member this.add_global_const(declaration:LLVMdeclaration) =
       this.program.global_declarations.Add(declaration)
+<<<<<<< HEAD
   
   member this.add_function(fName: string, f_args: Vec<(LLVMtype*string)>, rType: LLVMtype ) = 
       let newFunc = 
@@ -92,16 +103,26 @@ type LLVMCompiler = {
       this.program.functions.Add(newFunc);
       this.add_basic_block(newFunc, (sprintf "%smain" fName), Vec<BasicBlock>())
       newFunc;
+=======
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
     
   member this.compile_expression(expr: expr, func: LLVMFunction) =
     match expr with
       | Integer(x) -> Iconst(x) 
       | Floatpt(x) -> Fconst(x) 
       | Strlit(x) -> 
+<<<<<<< HEAD
         let mutable trimString = x.[1..x.Length-2] //Trim end characters
         trimString <- trimString + "\00"
         Sconst(trimString.Replace("/n", "\0a")) //This should return a pointer
       | Binop("=",a,b) -> //Special case- Destructive Assignment
+=======
+        // -/0a is one character, translate /n-which is /n/n to /0a
+        let mutable trimString = x.[1..x.Length-2] //Trim end characters
+        trimString <- trimString + "\00"
+        Sconst(trimString.Replace("/n", "\0a")) 
+      | Binop("=",a,b) -> //Destructive Assignment
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
         match a with
           | Var(a) -> //You could just compile a here theoretically
             let compiledExpr = this.compile_expression(b,func)
@@ -121,13 +142,34 @@ type LLVMCompiler = {
           this.add_to_body(Cast(regName,"zext", Basic("i1"), Register(currReg), Basic("i32")),func)
         | _ -> //Numeric and boolean operators
           this.add_to_body(Binaryop(regName, this.translate_op(op), rType, compiledA, compiledB), func) 
+<<<<<<< HEAD
         Register(regName)
+=======
+        Register(regName) //Return the register the function loaded to
+      | Uniop("print",a) ->
+        let mutable compiledA = this.compile_expression(a,func)
+        //Check type of A
+        let mutable aType = this.translate_type(symbol_table.infer_type(a),a)
+        let printType = match aType with
+          | Basic("i32") -> "lambda7c_printint"
+          | _ -> "lambda7c_printstr"
+        if printType = "lambda7c_printstr" then //String-specific
+          let aReg = this.uniqueID("A")
+          let aVar = this.uniqueID("SVAR")
+          this.add_global_const(Globalconst(aVar,aType,compiledA,Some("align 1")));
+          compiledA <- Register(aReg)
+          this.add_to_body(Structfield(aReg, aType,Global(aVar),Iconst(0)),func)
+          aType <- Pointer(Basic("i8"))
+        this.add_to_body(Call(None, Basic("void"), [aType], printType, [(aType,compiledA)]),func)
+        Register("printreg");
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
       | Uniop(op,a) ->
         let compiledA = this.compile_expression(a, func)
         let regName = this.uniqueID("R")
         this.add_to_body(Unaryop (regName, op, None, this.translate_type(LLint), compiledA), func)
         Register(regName)  
       | TypedDefine(varbox, expr) -> 
+<<<<<<< HEAD
         let (varType,varName) = varbox.value //This should be unique at some point based on gindex
         let expType = this.get_type(varName)
         //let compiledExpr = this.compile_expression(expr,func)
@@ -168,6 +210,20 @@ type LLVMCompiler = {
       | Var(varName) ->
         let newReg = this.uniqueID("R");
         this.add_to_body(Load(newReg, this.get_type(varName.value), Register(varName.value),None),func)
+=======
+        let (varType,varName) = varbox.value
+        let expType = this.get_type(varName)
+        let compiledExpr = this.compile_expression(expr,func)
+        this.add_to_body(Alloca(varName, expType, None),func)
+        //Add gindex here --SSA is a nightmare
+        this.add_to_body(Store(expType,compiledExpr, Register(varName), None),func)  
+        Register(varName) // -> Should be edest
+      | Var(varName) ->
+        //Load instruction
+        let newReg = this.uniqueID("R");
+        this.add_to_body(Load(newReg, this.get_type(varName.value), Register(varName.value),None),func)
+        //Return register you loaded to
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
         Register(newReg)
       | TypedLambda(_, _, expr) -> this.compile_expression(expr.value,func)
       | CodeBlock(exprs) -> 
@@ -175,6 +231,7 @@ type LLVMCompiler = {
         for newexprs in exprs do 
           this.compile_expression(newexprs.value,func)
         Register("codeblock-reg")
+<<<<<<< HEAD
       | Apply(box,[boxexpr]) when box.value = "print" -> //Change this to an apply
         let (a) = boxexpr.value
         let mutable compiledA = this.compile_expression(a,func)
@@ -205,6 +262,9 @@ type LLVMCompiler = {
         Iconst(3)
         
        | Ifelse(conditionBox,a,b) ->
+=======
+      | Ifelse(conditionBox,a,b) ->
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
         let condition = this.compile_expression(conditionBox.value,func)
         let creg = this.uniqueID("R");
         //Downcast condition to a boolean

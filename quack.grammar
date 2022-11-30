@@ -77,6 +77,10 @@ lexterminal CONS cons
 lexterminal CAR car
 lexterminal CDR cdr
 lexterminal TILDA ~
+<<<<<<< HEAD
+=======
+lexterminal PRINT print
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 lexterminal LAMBDA lambda
 
 !//Primitive Types
@@ -207,6 +211,10 @@ UNIOP --> NOT { "not" }
 UNIOP --> TILDA { "~" }
 UNIOP --> CAR { "car" }
 UNIOP --> CDR { "cdr" }
+<<<<<<< HEAD
+=======
+UNIOP --> PRINT { "print" }
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 
 EXPONENT_OPER --> UNARY_OPERATOR_EXPR:x { x }
 EXPONENT_OPER --> EXPONENT_OPER:x EXPONENT UNARY_OPERATOR_EXPR:y { Binop("^",x,y) }

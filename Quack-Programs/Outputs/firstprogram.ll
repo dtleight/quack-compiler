@@ -3,6 +3,11 @@ declare void @lambda7c_printint(i32)
 declare void @lambda7c_printfloat(double)
 declare void @lambda7c_printstr(i8*)
 
+<<<<<<< HEAD
+=======
+@str1 =  constant [ 6 x i8] c"hello\00", align 1
+%struct.bigstruct =  type {i32, i8, double}
+>>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 
 
 define i32 @main()
