@@ -4,6 +4,7 @@
 !// 3. BeginSeq's are ListLiterals and have different syntax
 !// 4. Vars are now  be LBox'ed
 !// 5. While/If Conditions are now LBox'ed
+!// 6. Added LLpointer
 !type expr =
 !  |Integer of int
 !  | Floatpt of float
@@ -34,9 +35,10 @@
 !  | LLint | LLfloat | LLstring
 !  | LList of lltype | LLtuple of lltype list
 !  | LLfun of (lltype list)*lltype
+!  | LLpointer of lltype
 !  | LLunknown | LLuntypable | LLvar of string | LLunit
 
-lexattribute line_comment #
+!//lexattribute line_comment #
 
 valuetype expr
 
@@ -63,7 +65,7 @@ lexterminal GT >
 lexterminal LTE <=
 lexterminal GTE >=
 lexterminal EQ eq
-lexterminal NOTEQ neq
+lexterminal NOTEQ !=
 
 !//Logic Operators
 lexterminal OR ||
@@ -75,7 +77,6 @@ lexterminal CONS cons
 lexterminal CAR car
 lexterminal CDR cdr
 lexterminal TILDA ~
-lexterminal DISPLAY display
 lexterminal LAMBDA lambda
 
 !//Primitive Types
@@ -206,7 +207,6 @@ UNIOP --> NOT { "not" }
 UNIOP --> TILDA { "~" }
 UNIOP --> CAR { "car" }
 UNIOP --> CDR { "cdr" }
-UNIOP --> DISPLAY { "display" }
 
 EXPONENT_OPER --> UNARY_OPERATOR_EXPR:x { x }
 EXPONENT_OPER --> EXPONENT_OPER:x EXPONENT UNARY_OPERATOR_EXPR:y { Binop("^",x,y) }
@@ -222,16 +222,10 @@ BINOP_ADDITION_EXPR --> BINOP_ADDITION_EXPR:x BINOP_PLUS_OPER:e BINOP_MULTIPLICA
 BINOP_PLUS_OPER --> PLUS { "+" }
 BINOP_PLUS_OPER --> MINUS { "-" }
 
-AND_EXPR --> BINOP_ADDITION_EXPR:x { x }
-AND_EXPR --> AND_EXPR:x AND BINOP_ADDITION_EXPR:y { Binop("and" ,x,y) }
-
-OR_EXPR --> AND_EXPR:x { x }
-OR_EXPR --> OR_EXPR:x OR AND_EXPR:y { Binop("or",x,y) } 
-
-BINOP_EQUALITY_EXPR --> OR_EXPR:x { x }
-BINOP_EQUALITY_EXPR --> BINOP_EQUALITY_EXPR:x BINOP_EQUAL_OPER:e OR_EXPR:y { Binop(e,x,y) } 
+BINOP_EQUALITY_EXPR --> BINOP_ADDITION_EXPR:x { x }
+BINOP_EQUALITY_EXPR --> BINOP_ADDITION_EXPR:x BINOP_EQUAL_OPER:e BINOP_EQUALITY_EXPR:y { Binop(e,x,y) } 
 BINOP_EQUAL_OPER --> EQUALS { "=" }
-BINOP_EQUAL_OPER --> NOTEQ { "neq" }
+BINOP_EQUAL_OPER --> NOTEQ { "!=" }
 BINOP_EQUAL_OPER --> EQ { "eq" }
 BINOP_EQUAL_OPER --> LTE { "<=" }
 BINOP_EQUAL_OPER --> GTE { ">=" }
@@ -239,7 +233,13 @@ BINOP_EQUAL_OPER --> LT { "<" }
 BINOP_EQUAL_OPER --> GT { ">" }
 BINOP_EQUAL_OPER --> CONS { "cons" }
 
-LAMBDA_EXPR --> BINOP_EQUALITY_EXPR:x { x }
+AND_EXPR --> BINOP_EQUALITY_EXPR:x { x }
+AND_EXPR --> AND_EXPR:x AND BINOP_EQUALITY_EXPR:y { Binop("and" ,x,y) }
+
+OR_EXPR --> AND_EXPR:x { x }
+OR_EXPR --> OR_EXPR:x OR AND_EXPR:y { Binop("or",x,y) } 
+
+LAMBDA_EXPR --> OR_EXPR:x { x }
 LAMBDA_EXPR --> LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,LLunknown,x) } 
 LAMBDA_EXPR --> UNIT_TYPE:t LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,t,x) } 
 

@@ -55,7 +55,7 @@ let attrs = Vec<string>()
 let main_function = { 
   name = "main";
   formal_args = f_args;
-  return_type = Basic("void");
+  return_type = Basic("i32");
   body = b;
   attributes = attrs;
   bblocator = HashMap<string,int>();
@@ -70,13 +70,16 @@ let main_function = {
  printfn "--------------------";;
  printfn "Type Checking";;
  printfn "--------------------";;
+ symbol_table.init_frame(result);;
  symbol_table.infer_type(result,false) |> ignore;;
+ printfn "%A" symbol_table;;
  printfn "--------------------";;
  printfn "Code Generation";;
  printfn "--------------------";;
  quack_compiler.add_basic_block(main_function, "mainstart", Vec<BasicBlock>());
  quack_compiler.program.functions.Add(main_function);
  quack_compiler.compile_expression(result,main_function) |> ignore;
+ quack_compiler.add_to_body(Ret(Basic("i32"), Iconst(0)),main_function);;
  let output = programToString(quack_compiler.program);;
  printfn "%s" output;;
- writeToFile(args.[1],output);;
+ if args.Length = 2 then writeToFile(args.[1],output);;

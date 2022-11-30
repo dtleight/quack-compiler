@@ -1,0 +1,22 @@
+//Test comment
+define x = 1;
+define y = 0;
+while (x < 10) 
+{
+  y = 1;
+  while (y < 10) 
+  {
+    print(x*y);
+    if (x * y < 10)
+    {
+      print("   "); 
+    }
+    else
+    { 
+      print("  ");
+    }
+    y = y + 1;
+  }
+  print("/n");
+  x = x + 1;
+}

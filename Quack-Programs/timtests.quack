@@ -1,0 +1,11 @@
+
+define x = 3;
+define y = 2;
+define z = 1;
+define func = lambda y:int. print(3);
+
+print("Testing");
+
+func(3);
+
+print("Second");

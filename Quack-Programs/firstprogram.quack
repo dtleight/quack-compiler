@@ -1,4 +1,7 @@
-3 + 4;
 define sum = 0;
-
-define sum2 = 5 + sum;
+define i = 1;
+while (i<=100) {
+  sum = sum + i;
+  i = i+1;
+}
+print sum;
