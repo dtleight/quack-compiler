@@ -1,0 +1,16 @@
+define fib = int lambda n:int .{
+  if (n<=2)
+  {
+    1;
+  }
+  else
+  {
+   define x = fib(n - 1) + fib(n - 2);
+   //print(x);
+   x;
+  }
+ };
+print(fib(10));
+define x = 0;
+if (x>0 && 10/x>1){ print("/nA/n"); } else { print("/nB/n"); }
+if (x<1 || x<fib(100)){ print("C/n"); } else { print("D/n"); }

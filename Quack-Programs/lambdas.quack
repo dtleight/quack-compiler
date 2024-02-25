@@ -1,3 +1,9 @@
-define lt = lambda t.t + 1;
-define jt = lambda c,y. c + y;
-define qt  = lambda x:int, y:int. 2 * 3;
+//define lt = lambda t.t + 1;
+//define jt = lambda c,y. c + y;
+//define qt  = lambda x:int, y:int. 2 * 3;
+
+define total_sum = 5;
+let ts = total_sum in {
+  print("Total Sum: /n");
+  print(ts);
+};

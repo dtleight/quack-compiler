@@ -1,0 +1,3 @@
+import "Quack-Programs/Quack-Librarys/arrays.quack";
+
+define a = 3;

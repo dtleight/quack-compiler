@@ -3,33 +3,65 @@ declare void @lambda7c_printint(i32)
 declare void @lambda7c_printfloat(double)
 declare void @lambda7c_printstr(i8*)
 
-@SVAR0_6 =  constant [8 x i8] c"Testing\00", align 1
-@SVAR0_9 =  constant [7 x i8] c"Second\00", align 1
 
 
 define i32 @main()
 {
 	mainstart:
-		%x = alloca i32
-		store i32 3, i32* %x
-		%y = alloca i32
-		store i32 2, i32* %y
-		%z = alloca i32
-		store i32 1, i32* %z
-		%A0_6 = getelementptr inbounds [8 x i8], [8 x i8]* @SVAR0_6, i64 0, i64 0
-		call void (i8*) @lambda7c_printstr(i8* %A0_6)
-		call i32 (i32) @func()
-		%A0_9 = getelementptr inbounds [7 x i8], [7 x i8]* @SVAR0_9, i64 0, i64 0
-		call void (i8*) @lambda7c_printstr(i8* %A0_9)
+		%x_1 = alloca i32
+		store i32 3, i32* %x_1
+		%y_2 = alloca i32
+		store i32 2, i32* %y_2
+		%z_3 = alloca i32
+		store i32 1, i32* %z_3
+		call void (i32, i32*, i32*, i32*) @fun(i32 2, i32* %x_1, i32* %y_2, i32* %z_3)
+		call void (i32, i32*, i32*, i32*) @fun2(i32 17, i32* %x_1, i32* %y_2, i32* %z_3)
+		call void (i32, i32*, i32*, i32*) @fun3(i32 105, i32* %x_1, i32* %y_2, i32* %z_3)
+		%R_9 = call i32 (i32, i32*, i32*, i32*) @fun4(i32 3, i32* %x_1, i32* %y_2, i32* %z_3)
 		ret i32 0
 
 }
 
-define i32 @func(i32:farg_y_0, i32*:x, i32*:y, i32*:z)
+define void @fun(i32 %farg_y_6, i32* %x_1, i32* %y_2, i32* %z_3)
 {
-	funcmain:
-		call void (i32) @lambda7c_printint(i32 3)
-		ret i32 %printreg
+	funmain:
+		%y_6 = alloca i32
+		store i32 %farg_y_6, i32* %y_6
+		%z_3_2 = load i32, i32* %z_3
+		call void (i32) @lambda7c_printint(i32 %z_3_2)
+		ret void
+
+}
+
+define void @fun2(i32 %farg_a_10, i32* %x_1, i32* %y_2, i32* %z_3)
+{
+	fun2main:
+		%a_10 = alloca i32
+		store i32 %farg_a_10, i32* %a_10
+		%a_10_2 = load i32, i32* %a_10
+		call void (i32) @lambda7c_printint(i32 %a_10_2)
+		ret void
+
+}
+
+define void @fun3(i32 %farg_y_14, i32* %x_1, i32* %y_2, i32* %z_3)
+{
+	fun3main:
+		%y_14 = alloca i32
+		store i32 %farg_y_14, i32* %y_14
+		%y_14_2 = load i32, i32* %y_14
+		call void (i32) @lambda7c_printint(i32 %y_14_2)
+		ret void
+
+}
+
+define i32 @fun4(i32 %farg_c_18, i32* %x_1, i32* %y_2, i32* %z_3)
+{
+	fun4main:
+		%c_18 = alloca i32
+		store i32 %farg_c_18, i32* %c_18
+		%c_18_2 = load i32, i32* %c_18
+		ret i32 %c_18_2
 
 }
 

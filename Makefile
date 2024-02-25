@@ -15,7 +15,7 @@ RUSTLROPTIONS = -genlex
 
 ifdef MAIN
 $(MAIN).exe : $(MAIN).fs $(GRAMMAR)_lex.dll $(GRAMMAR)parser.dll
-	$(FSC) $(MAIN).fs /r:$(GRAMMAR)_lex.dll /r:$(GRAMMAR)parser.dll /r:$(FUSSLESS)RuntimeParser.dll /r:$(FUSSLESS)absLexer.dll /r:quack-compile.dll /r:llvmir.dll /r:quack-typecheck.dll$(ADDITIONAL)
+	$(FSC) $(MAIN).fs /r:$(GRAMMAR)_lex.dll /r:$(GRAMMAR)parser.dll /r:$(FUSSLESS)RuntimeParser.dll /r:$(FUSSLESS)absLexer.dll /r:quack-compile.dll /r:llvmir.dll /r:quack-types.dll /r:quack-typecheck.dll$(ADDITIONAL)
 endif
 
 $(GRAMMAR)_lex.dll $(GRAMMAR)parser.dll : $(GRAMMAR)_lex.cs $(GRAMMAR)parser.fs

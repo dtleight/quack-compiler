@@ -49,6 +49,7 @@ type LLVMexpr =
   | Register of string   // %r1
   | Global of string     // @str1
   | Label of string      // not really used
+  | Nullptr
   | Novalue     // default
 
 type Instruction =  
@@ -77,6 +78,7 @@ type Instruction =
   // simplified forms of getelementptr for array address and struct field
   | Arrayindex of string*int*LLVMtype*LLVMexpr*LLVMexpr
   | Structfield of string*LLVMtype*LLVMexpr*LLVMexpr
+ // | Typefield of string*(LLVMType*LLVMexpr)*
   // other llvm instructions not covered by above must be encoded as:
   | Verbatim of string //generic "other" instruction, default case, comments
 
@@ -263,11 +265,13 @@ let rec map(vec: Vec<'a>, f: 'a -> 'b): Vec<'b> =
   for x in vec do
     retVec.Add(f(x))
   retVec;;
+  
 let trim(str:string) = 
   str.[1..str.Length-2];;
 
 let rec listmap(vec: 'a list, f: 'a -> 'b): string =
-  sprintf "(%s)" (trim(trim(sprintf "%A" (vec |> List.map f))));; 
+  //sprintf "(%s)" (trim(sprintf "%A" (vec |> List.map f)));; 
+  sprintf "(%s)" (String.concat ", " (vec |> List.map f));; 
   
 let rec flatten(vec: Vec<'a>, initial: 'a) = 
   let mutable output = initial
@@ -287,6 +291,7 @@ let exprToString(expr: LLVMexpr)  =
     | Register(x) -> "%" + x;   // %r1
     | Global(x) -> "@" + x;     // @str1
     | Label(x) -> x;      // not really used
+    | Nullptr -> "null";
     | Novalue -> "default";;    // default
 
 let rec typeToString(typeExpr: LLVMtype) =
@@ -296,14 +301,15 @@ let rec typeToString(typeExpr: LLVMtype) =
     | Array_t(len,x) -> sprintf  "[%d x %s]" len (typeToString(x));
     | Userstruct(x) -> x;
     | Ellipsis -> "Ellipsis";  // special case for optional args, like printf(i8*,...)
-    | Void_t -> "";
+    | Void_t -> "void";
+    | _ -> ""
     
 
 let instructionToString(instruction: Instruction) = 
   match instruction with
     // terminator instructions that ends a Basic Block: - Done
     | Ret(typeExpr, expr) -> sprintf "ret %s %s" (typeToString(typeExpr))  (exprToString(expr));
-    | Ret_noval -> "ret";
+    | Ret_noval -> "ret void";
     | Br_uc(label) -> sprintf "br label %s" ("%"+label);
     | Bri1 (expr, label1, label2) -> sprintf "br i1 %s, label %s, label %s" (exprToString(expr)) ("%"+label1)  ("%"+label2);
     // memory ops: store i32 3, i32* %a, optional "align 4", type i32* is omitted
@@ -331,6 +337,7 @@ let instructionToString(instruction: Instruction) =
     // simplified forms of getelementptr for array address and struct field
     | Arrayindex(var, value, typeExpr, expr1, expr2) -> "%" + var + " = getelementptr inbounds [" + (value.ToString()) + " x " + (typeToString(typeExpr)) + "], [" + (value.ToString()) + " x " + (typeToString(typeExpr)) + "]* " +  (exprToString(expr1)) + ",  i64 0, i64 " + (exprToString(expr2));
     | Structfield(var, typeExpr, expr1, expr2) -> sprintf "%s = getelementptr inbounds %s, %s %s, i64 %s, i64 %s" ("%"+var) (typeToString(typeExpr)) (typeToString(Pointer(typeExpr))) (exprToString(expr1)) (exprToString(expr2)) (exprToString(expr2))
+    //| Typefield(var, allocExpr, bufferOffset, fieldOffset) -> sprintf "%s = getelementptr inbounds %s,"
     | Verbatim(content) -> content; //generic "other" instruction, default case, comments
     | _ -> "Instruction";;
   
@@ -344,21 +351,17 @@ let declarationToString(declaration: LLVMdeclaration) =
     | Verbatim_dec(content) -> content;
     
 let functionToString(func: LLVMFunction) =
-  sprintf "define %s @%s%s\n{\n%s}\n" (typeToString(func.return_type)) func.name (stringify(map(func.formal_args, fun (a,b)-> sprintf "%s:%s" (typeToString(a)) b),"(",")")) (flatten(map(func.body, (fun x-> sprintf "\t%s:\n%s\n" (x.label) (flatten(map(x.body, fun y-> (sprintf "\t\t%s\n" (instructionToString(y)))),"")))),""));;
+  sprintf "define %s @%s%s\n{\n%s}\n" (typeToString(func.return_type)) func.name (stringify(map(func.formal_args, fun (a,b)-> sprintf "%s %s%s" (typeToString(a)) "%" b),"(",")")) (flatten(map(func.body, (fun x-> sprintf "\t%s:\n%s\n" (x.label) (flatten(map(x.body, fun y-> (sprintf "\t\t%s\n" (instructionToString(y)))),"")))),""));;
   
 let programToString(program: LLVMprogram) =
   let declarations = flatten(map(program.global_declarations, fun x -> sprintf "%s\n" (declarationToString(x))),"")
   let functions = flatten(map(program.functions, fun x -> sprintf "%s\n" (functionToString(x))),"")
   sprintf "%s\n\n%s\n\n%s" program.preamble declarations functions;;
-
- let prog = 
+  
+let prog = 
   {
-    preamble = "target triple = \"x86_64-pc-windows-msvc19.33.31629\"\ndeclare void @lambda7c_printint(i32)\ndeclare void @lambda7c_printfloat(double)\ndeclare void @lambda7c_printstr(i8*)";
-<<<<<<< HEAD
+    preamble = "target triple = \"x86_64-pc-windows-msvc19.33.31629\"\ndeclare void @lambda7c_printint(i32)\ndeclare void @lambda7c_printfloat(double)\ndeclare void @lambda7c_printstr(i8*)\ndeclare i32 @lambda7c_cin()\ndeclare i8* @malloc(i32)\ndeclare void @free(i8*)\ndeclare i8* @memcpy(i8*, i8*, i32)";
     global_declarations = Vec<LLVMdeclaration>();
-=======
-    global_declarations = declarations;
->>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
     functions = Vec<LLVMFunction>();
     postamble = ""
   };;

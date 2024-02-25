@@ -5,6 +5,8 @@
 !// 4. Vars are now  be LBox'ed
 !// 5. While/If Conditions are now LBox'ed
 !// 6. Added LLpointer
+!// 7. Added Class Declaration
+!// 8. Added Import Declaration
 !type expr =
 !  |Integer of int
 !  | Floatpt of float
@@ -22,6 +24,8 @@
 !  | Let of LBox<string>*expr*LBox<expr>
 !  | TypedLet of LBox<lltype*string>*expr*LBox<expr>
 !  | Quote of expr
+!  | Class of LBox<string>*expr
+!  | Import of LBox<string>
 !  | Setq of LBox<string>*expr
 !  | Apply of LBox<string> * LBox<expr> list
 !  | ListLiteral of LBox<expr> list
@@ -77,10 +81,6 @@ lexterminal CONS cons
 lexterminal CAR car
 lexterminal CDR cdr
 lexterminal TILDA ~
-<<<<<<< HEAD
-=======
-lexterminal PRINT print
->>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 lexterminal LAMBDA lambda
 
 !//Primitive Types
@@ -107,6 +107,7 @@ lexterminal RPAREN )
 lexterminal LET let
 lexterminal DEFINE define
 lexterminal IN in
+lexterminal CLASS class
 
 
 !//Loops and Decision Statements
@@ -115,6 +116,7 @@ lexterminal ELSE else
 lexterminal FOR for
 lexterminal WHILE while
 
+
 !//Value Literals
 lexterminal TRUE true
 lexterminal FALSE false
@@ -122,6 +124,7 @@ lexterminal NIL nil
 
 !//Imports
 !//lexterminal YOINK yoink
+lexterminal IMPORT import
 
 !//-------------------------------------------------------
 !//VALUE TERMINALS
@@ -155,7 +158,7 @@ nonterminal EXPR_SEQ LBox<expr> list
 nonterminal LIST_SEQ LBox<expr> list
 nonterminal VAR_SEQ (lltype*string) list
 nonterminal STATEMENT_SEQ LBox<expr> list
-nonterminal LIST_LITERAL expr
+nonterminal LIST_EXPR expr
 nonterminal CODE_BLOCK expr
 nonterminal LAMBDA_BLOCK expr
 
@@ -171,6 +174,7 @@ nonterminal STATEMENT expr
 nonterminal EXPR_STATEMENT expr
 nonterminal LOOP_STATEMENT expr
 nonterminal SELECT_STATEMENT expr
+nonterminal CLASS_DECLARATION expr
 
 
 
@@ -198,6 +202,7 @@ TYPE_PREFIX --> VAR:v COLON UNIT_TYPE:t { (t,v) }
 UNIT_EXPR --> LPAREN STATEMENT:x RPAREN { x }
 UNIT_EXPR --> VAR:[x] { Var(x) }
 UNIT_EXPR --> VAR:[x] LPAREN LIST_SEQ:l RPAREN {Apply(x, l)}
+UNIT_EXPR --> IMPORT STRING_LITERAL:[x] {Import(x)}
 UNIT_EXPR --> STRING_LITERAL:x { Strlit(x) }
 UNIT_EXPR --> INTEGER_LITERAL:x { Integer(x) }
 UNIT_EXPR --> FLOAT_LITERAL:x { Floatpt(x) }
@@ -211,10 +216,6 @@ UNIOP --> NOT { "not" }
 UNIOP --> TILDA { "~" }
 UNIOP --> CAR { "car" }
 UNIOP --> CDR { "cdr" }
-<<<<<<< HEAD
-=======
-UNIOP --> PRINT { "print" }
->>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 
 EXPONENT_OPER --> UNARY_OPERATOR_EXPR:x { x }
 EXPONENT_OPER --> EXPONENT_OPER:x EXPONENT UNARY_OPERATOR_EXPR:y { Binop("^",x,y) }
@@ -242,35 +243,37 @@ BINOP_EQUAL_OPER --> GT { ">" }
 BINOP_EQUAL_OPER --> CONS { "cons" }
 
 AND_EXPR --> BINOP_EQUALITY_EXPR:x { x }
-AND_EXPR --> AND_EXPR:x AND BINOP_EQUALITY_EXPR:y { Binop("and" ,x,y) }
+AND_EXPR --> AND_EXPR:[x] AND BINOP_EQUALITY_EXPR:y { Ifelse(x,y,Integer(0))}
+!//Binop("and" ,x,y) }
 
 OR_EXPR --> AND_EXPR:x { x }
-OR_EXPR --> OR_EXPR:x OR AND_EXPR:y { Binop("or",x,y) } 
+OR_EXPR --> OR_EXPR:[x] OR AND_EXPR:y { Ifelse(x,Integer(1),y) } 
+!//Binop("or",x,y)
 
-LAMBDA_EXPR --> OR_EXPR:x { x }
+LIST_SEQ --> EXPR:[e] COMMA LIST_SEQ:seq { e::seq }
+LIST_SEQ --> EXPR:[e] { [e] }
+LIST_SEQ --> { [] }
+
+LIST_EXPR --> OR_EXPR:x {x}
+LIST_EXPR --> LBRACKET LIST_SEQ:x RBRACKET { ListLiteral(x) }
+
+LAMBDA_EXPR --> LIST_EXPR:x { x }
 LAMBDA_EXPR --> LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,LLunknown,x) } 
 LAMBDA_EXPR --> UNIT_TYPE:t LAMBDA VAR_SEQ:v DOT LAMBDA_BLOCK:[x] { TypedLambda(v,t,x) } 
 
 LET_EXPR --> LAMBDA_EXPR:x { x }
-LET_EXPR --> LET TYPE_PREFIX:[d] EQUALS LAMBDA_EXPR:x IN LAMBDA_EXPR:[y] {TypedLet(d,x,y)}
+LET_EXPR --> LET TYPE_PREFIX:[d] EQUALS LAMBDA_EXPR:x IN LAMBDA_BLOCK:[y] {TypedLet(d,x,y)}
 
 DEFINE_EXPR --> LET_EXPR:x { x } 
 DEFINE_EXPR --> DEFINE TYPE_PREFIX:[d] EQUALS LAMBDA_EXPR:x {TypedDefine(d,x)}
 
 EXPR --> DEFINE_EXPR:x { x }
 
-!//THIS IS A TEMPORARY INJECTION FOR A LIST LITERAL- THIS NEEDS TO CHANGE
-EXPR --> LIST_LITERAL:x { x }
-
 !//EXPR_SEQ --> EXPR:[e] ;  EXPR_SEQ:seq  { e:: seq }
 !//EXPR_SEQ --> EXPR:[e] ;  { [e] } 
 VAR_SEQ --> TYPE_PREFIX:e COMMA VAR_SEQ:seq { e::seq }
 VAR_SEQ --> TYPE_PREFIX:e { [e] }  
-LIST_SEQ --> EXPR:[e] COMMA LIST_SEQ:seq { e::seq }
-LIST_SEQ --> EXPR:[e] { [e] }
-LIST_SEQ --> { [] }
 
-LIST_LITERAL --> LBRACKET LIST_SEQ:x RBRACKET { ListLiteral(x) }
 
 LAMBDA_BLOCK --> LCURLY PROGRAM:x RCURLY { x }
 LAMBDA_BLOCK --> EXPR:x {x}
@@ -291,6 +294,7 @@ STATEMENT --> SELECT_STATEMENT:x { x }
 STATEMENT_SEQ --> STATEMENT:[e] STATEMENT_SEQ:seq  { e::seq }
 STATEMENT_SEQ --> STATEMENT:[e]  { [e] } 
 
+PROGRAM --> CLASS VAR:[x] LCURLY PROGRAM:p RCURLY {Class(x,p)}
 PROGRAM --> STATEMENT_SEQ:x { CodeBlock(x) }
 
 EOF

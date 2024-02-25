@@ -11,6 +11,6 @@
    b=b%a;
    }
  }
- print "The gcd = ";
- print a+b ;
- print "/n";
+ print("The gcd = ");
+ print(a+b);
+ print("/n");

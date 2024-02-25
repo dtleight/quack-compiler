@@ -3,14 +3,9 @@ declare void @lambda7c_printint(i32)
 declare void @lambda7c_printfloat(double)
 declare void @lambda7c_printstr(i8*)
 
-<<<<<<< HEAD
 @SVAR3_26 =  constant [4 x i8] c"   \00", align 1
 @SVAR4_29 =  constant [3 x i8] c"  \00", align 1
 @SVAR6_40 =  constant [2 x i8] c"\0a\00", align 1
-=======
-@str1 =  constant [ 6 x i8] c"hello\00", align 1
-%struct.bigstruct =  type {i32, i8, double}
->>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 
 
 define i32 @main()
@@ -18,7 +13,6 @@ define i32 @main()
 	mainstart:
 		%x = alloca i32
 		store i32 1, i32* %x
-<<<<<<< HEAD
 		%y = alloca i32
 		store i32 0, i32* %y
 		%R0_4 = load i32, i32* %x
@@ -81,13 +75,6 @@ define i32 @main()
 		br i1 %R6_48, label %WhileBody0_8, label %WhileEnd0_8
 
 	WhileEnd0_8:
-=======
-		%R0_2 = load i32, i32* %x
-		%R0_3 = add i32 %R0_2, 1
-		store i32 %R0_3, i32* %x
-		%R0_5 = load i32, i32* %x
-		call void (i32) @lambda7c_printint(i32 %R0_5)
->>>>>>> 76b5f934c56805a26126dc6b147cfd0769834802
 		ret i32 0
 
 }

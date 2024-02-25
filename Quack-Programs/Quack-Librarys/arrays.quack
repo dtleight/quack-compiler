@@ -1,0 +1,12 @@
+class Arrays
+{
+  define bufferPtr:int = 0;
+  define length:int = 0;
+  define maxlen:int = 0;
+  define growthfactor:int = 0;
+  
+  define foo = lambda x.
+  {
+    print(3);
+  };
+}

@@ -16,9 +16,22 @@ and table_frame =
   {
     name : string;
     entries:HashMap<string, table_entry>;
-    closure: SortedDictionary<string, int*lltype>;
+    closure: SortedDictionary<string*int, lltype>;
     parent_scope:table_frame option;
   }
+  member this.get_entry(x:string) =
+    let mutable lookup_frame = this
+    let mutable found = false
+    let mutable breakFree = false
+    while (not found) && (not breakFree) do
+      if lookup_frame.entries.ContainsKey(x) then 
+        found <- true
+      else
+        lookup_frame <- 
+          match lookup_frame.parent_scope with
+            | Some(x) -> x
+            | _ -> breakFree <- true; lookup_frame
+    if found then Some(lookup_frame.entries.[x]) else None;; 
 
 let numeric_binops = ["+"; "-"; "/"; "*"; "^";]
 let comparison_binops = ["eq"; "neq"; "<"; ">"; "<="; ">=";]
@@ -34,19 +47,20 @@ type SymbolTable =  // wrapping structure for symbol table frames
      mutable current_frame: table_frame;
      mutable global_index: int;
      frame_hash:HashMap<(int*int),table_frame>;
+     struct_hash: HashMap<(int*int), lltype>;
   }
   member this.add_entry(s:string,t:lltype,a:expr option) = //overwrite
     this.global_index <- this.global_index + 1
-    if this.current_frame.entries.TryAdd(s,{typeof=t; gindex=this.global_index; ast_rep=a;}) then
-      this.current_frame.entries.[s] = {typeof=t; gindex=this.global_index; ast_rep=a;}|> ignore
- 
+    if  not(this.current_frame.entries.TryAdd(s,{typeof=t; gindex=this.global_index; ast_rep=a;})) then
+      this.current_frame.entries.[s] <- {typeof=t; gindex=this.global_index; ast_rep=a;}
+      
   member this.push_frame(n,line,column) =
     let newframe =
       {
         table_frame.name=n;
         entries=HashMap<string,table_entry>();
         parent_scope = Some(this.current_frame);
-        closure = SortedDictionary<string,int*lltype>();
+        closure = SortedDictionary<string*int,lltype>();
       }  
     this.frame_hash.[(line,column)] <- newframe
     this.current_frame <- newframe
@@ -55,10 +69,6 @@ type SymbolTable =  // wrapping structure for symbol table frames
 
   member this.pop_frame() =
     this.current_frame.parent_scope |> Option.map (fun p -> this.current_frame<-p)
-    //this.current_frame <- 
-    //  match this.current_frame.parent_scope with
-    //    | Some(x) -> x
-    //    | _ -> this.current_frame
 
   member this.report_error(line:int, column:int, error:string) =
          printfn "Error at Line %d,  Column %d : %s" (line+1) (column+1) error
@@ -80,6 +90,10 @@ type SymbolTable =  // wrapping structure for symbol table frames
       | lltype.LLtuple(vs) -> List.forall this.grounded_type vs
       | LLfun(args,rtype) ->  List.forall this.grounded_type (rtype::args)
       | _ -> true
+   member this.member_type(t:lltype) = 
+    match t with
+      | LLfun(args,rtype) -> false
+      | _ -> true
   //This can have additional arguments.
   member this.infer_type(expression:expr, ?traceback:bool) = 
     let trace = defaultArg traceback false
@@ -98,6 +112,7 @@ type SymbolTable =  // wrapping structure for symbol table frames
       | Binop("eq",a,b) | Binop("!=",a,b) | Binop("<",a,b) | Binop(">",a,b) | Binop("<=",a,b) | Binop(">=",a,b) ->
         let (atype,btype) = (this.infer_type(a), this.infer_type(b))
         if atype=btype && this.is_numeric(atype) then LLint else LLuntypable
+      | Binop("=",a,b) -> if this.infer_type(b) = this.infer_type(a) then this.infer_type(a) else LLuntypable
       | Uniop("-",a) ->
         let atype = this.infer_type(a)
         if this.is_numeric(atype) then atype else LLuntypable
@@ -124,14 +139,14 @@ type SymbolTable =  // wrapping structure for symbol table frames
       //Definitions
       | Var(box) ->  
         let(line,column) = box.line, box.column
-        let result = this.get_entry(box.value);
+        let result = this.current_frame.get_entry(box.value);
         match result with 
           |None -> this.report_error(line,column,"Undeclared variable \"" + box.value + "\""); LLuntypable
           |Some(x) -> x.typeof;
       | TypedDefine(box, exp) -> 
          let (atype, var) = box.value // let x: int =
          let (line,column) = box.line, box.column 
-         //Recursion handling - this adds a binding for var
+         //Recursion handling - this adds a binding for the function
          match exp with
            | TypedLambda(_,rtype,_) when rtype <> LLunknown -> this.add_entry(var, LLfun([LLint],rtype), None);
            | TypedLambda(_,_,_) -> this.add_entry(var, LLfun([LLint],LLvar("A")), None);
@@ -141,8 +156,9 @@ type SymbolTable =  // wrapping structure for symbol table frames
                let vartype = this.infer_type(exp);// Get the type of the expression(non-grounded)
                match exp,vartype with
                  | (TypedLambda(narglist,nrtype,lexp),ntype) -> 
-                    let lType = this.infer_lambda(narglist,nrtype,lexp,lexp.line, lexp.column,var); //Infer the return type
-                    this.add_entry(var,lType,Some(exp)) //Is using lexp right here?  It is Ltype is LLfunc(something)
+                    //Infer the return type
+                    let lType = this.infer_lambda(narglist,nrtype,lexp,lexp.line, lexp.column,var); 
+                    this.add_entry(var,lType,Some(exp)) 
                     lType
                  | (_,LLuntypable) -> LLuntypable 
                  | (nexp,ntype) -> //A is a grounded type so you can just add an entry with its type
@@ -160,22 +176,44 @@ type SymbolTable =  // wrapping structure for symbol table frames
       | TypedLambda(arglist,rtype, exp) -> this.infer_lambda(arglist,rtype,exp, exp.line, exp.column)
       | TypedLet(box, exp, boxexp) -> 
           //New frames need to be completed here
-          let (atype, var) = box.value
-          let (line,column) = box.line, box.column
-          match atype with
-            | LLunknown -> 
-                this.report_error(line,column,"Unimplemented");
-                LLuntypable
-            | _ -> atype; //Add a stack entry here
+          let (bvar) = boxexp.value;  //Ensuing lambda
+          let (bline,bcolumn) = boxexp.line, boxexp.column; //Ensuing lambda
+          let (atype, avar) = box.value; //var to inject
+          let (line,column) = box.line, box.column;
+          let eType = this.infer_type(exp); //Type for inject var
+          let parent_frame = this.current_frame;
+          //Push a new stack frame and add bindings for arguments.
+          this.push_frame((sprintf "Let %s %d:%d" avar line column),line,column);
+          this.add_entry(avar,eType,Some(exp)) 
+         
+          //Typecheck the body
+          let rbType = this.infer_type(boxexp.value);
+          let rType = 
+            match atype with
+              | LLunknown -> this.infer_type(boxexp.value);
+              | _ -> atype;
+          this.current_frame <- parent_frame //Reset the stack frame
+          this.struct_hash.[(bline,bcolumn)] <- rType 
+          rType
+      | Apply(box,boxexp) when box.value = "print"-> LLunit
+      | Apply(box,boxexp) when box.value = "input"-> LLint 
       | Apply(box,boxexp) ->
-         let var = box.value
+         let var = box.value 
          let (line,column) = box.line, box.column
-         LLunit
+         match this.current_frame.get_entry(var) with 
+          | Some(entry) -> 
+            printfn "Found a table entry"
+            match entry.typeof with
+              | LLfun(_,rType) -> rType
+              | _ -> entry.typeof
+          |_ -> LLuntypable
       //Loops and Selections
       | Whileloop(box, code) ->
           let (line,column) = box.line, box.column 
           if this.is_numeric(this.infer_type(box.value)) then
-            this.infer_type(code)
+            let rType = this.infer_type(code)
+            this.struct_hash.[(line,column)] <- rType
+            rType
           else
             this.report_error(line,column,"Invalid loop condition")
             LLuntypable 
@@ -184,6 +222,7 @@ type SymbolTable =  // wrapping structure for symbol table frames
           if this.is_numeric(this.infer_type(box.value)) then
             let atype,btype = this.infer_type(a), this.infer_type(b);
             if atype = btype then
+              this.struct_hash.[(line,column)] <- atype
               atype 
             else 
               this.report_error(line,column,"Type mismatch")
@@ -191,6 +230,13 @@ type SymbolTable =  // wrapping structure for symbol table frames
           else
             this.report_error(line,column,"Invalid if condition")
             LLuntypable 
+      | Class(name,body) -> 
+            let (line,col) = (name.line,name.column)
+            this.push_frame((sprintf "Class %s %d:%d" name.value line col), line,col)
+            this.infer_type(body)
+            this.pop_frame();
+            LLunit
+      | Import(name) -> LLunit    
       | _ -> LLunit //DO SOMETHING HERE
 
 
@@ -203,16 +249,18 @@ type SymbolTable =  // wrapping structure for symbol table frames
     //Push a new stack frame and add bindings for arguments.
     this.push_frame((sprintf "Lambda %s %d:%d" aName line column),line,column);
     for arg in arglist do
-      let (vartype, var) = arg
-      this.add_entry(var,vartype,None)
+      let (vartype, var) = arg //Why isn't type inference happening here
+      this.add_entry(var,vartype,None) 
       argtypes <- vartype::argtypes;
-    let ftype = match rtype with
-      | LLunknown -> 
-         LLfun(argtypes,LLunknown) //Perform type inference here
-      | _ -> 
-          if rtype = this.infer_type(exp.value) then
-           LLfun(argtypes,rtype)
-          else
+    let ftype = 
+      match rtype with
+        | LLunknown -> 
+           let nrtype = this.infer_type(exp.value);
+           if nrtype <> LLuntypable then LLfun(argtypes,nrtype) else LLuntypable
+        | _ -> 
+           if rtype = this.infer_type(exp.value) then
+            LLfun(argtypes,rtype)
+           else
             this.report_error(line,column, "Return Type Mismatch");
             LLuntypable
     this.current_frame <- parent_frame //Reset the stack frame 
@@ -225,14 +273,13 @@ type SymbolTable =  // wrapping structure for symbol table frames
   member this.collect_vars() =
     let mutable curr_frame = Some(this.current_frame)
     while curr_frame <> None do
-      curr_frame |> Option.map (fun frame -> 
+      (curr_frame |> Option.map (fun frame -> 
       for x in frame.entries do
         //Add Anonymous function skips, add function skips
         if this.is_closure_member(x.Value.typeof) then 
-           this.current_frame.closure.TryAdd(x.Key,(x.Value.gindex, x.Value.typeof)) |> ignore
+           this.current_frame.closure.TryAdd((x.Key, x.Value.gindex),x.Value.typeof) |> ignore
       curr_frame <- frame.parent_scope;
-      )
-        
+     )) |> ignore
   member this.calculate_closure() = 
     this.collect_vars()  
   
@@ -241,34 +288,34 @@ type SymbolTable =  // wrapping structure for symbol table frames
     
   member this.locate_frame(line: int, column: int) =
     this.frame_hash.[(line,column)]
-             
-  //member find_frame()
-//Access the hashmap for this frame, 
-  member this.get_entry(x:string) =
-    let mutable lookup_frame = this.current_frame
-    let mutable found = false
-    let mutable breakFree = false
-    while not found && not breakFree do
-      if lookup_frame.entries.ContainsKey(x) then 
-        found <- true
-      else
-        lookup_frame <- 
-          match this.current_frame.parent_scope with
-            | Some(x) -> x
-            | _ -> breakFree <- true; this.current_frame
-    if found then Some(lookup_frame.entries.[x]) else None;; 
-
+  
+  member this.locate_struct(line:int, column: int) =
+    this.struct_hash.[(line,column)]
+    
+  member this.print_vars() =
+    for x in this.frame_hash do
+      printfn "%s" (String.replicate 75 "-")
+      printfn "\t\t\tFrame: %s" x.Value.name
+      printfn "%s" (String.replicate 75 "-")
+      printfn "|%22s | %48s|" "Variable" "Type"
+      printfn "%s" (String.replicate 75 "-")
+      for y in x.Value.entries do
+        printfn "|%22s | %48s|" y.Key (y.Value.typeof.ToString())
+      printfn "|%22s | %48s|" "closure" ((sprintf "%A" (x.Value.closure.Keys |> Seq.map(fun (k,i) -> k))).Replace("seq ", ""))
+      printfn "%s" (String.replicate 75 "-");;
+    
 // global symbol table
 let mutable global_frame = // root frame
   {
     table_frame.name = "global";
     entries= HashMap<string,table_entry>();
     parent_scope = None;
-    closure = SortedDictionary<string,int*lltype>();
+    closure = SortedDictionary<string*int,lltype>();
   }
 let symbol_table =
   {
     SymbolTable.current_frame=global_frame;
     global_index = 0;
     frame_hash = HashMap<(int*int),table_frame>();
+    struct_hash = HashMap<(int*int),lltype>();
   }

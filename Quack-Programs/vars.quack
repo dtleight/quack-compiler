@@ -1,0 +1,7 @@
+define x = 1;
+define f = int lambda y:int. y + x;
+let x = 2 in {
+  define g = int lambda y:int. f(y)+x;
+  define test = g(x);
+  print(test);
+};

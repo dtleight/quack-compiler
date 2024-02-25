@@ -1,0 +1,35 @@
+define x = 1;
+define f = int lambda y:int. y+x;
+define f2 = lambda y:int.
+{
+  let x = 2 in {
+    print(x);
+    0.5;
+  };
+};
+
+print(f2(1));
+
+define fib = int lambda n:int. 
+{
+  if(n<=2)
+  {
+  1;
+  } 
+  else 
+  {
+  fib(n-1)+fib(n-2);
+  }
+};
+print("/n");
+print(fib(10));
+
+if (x > 0 &&  10 / x > 1)
+{
+ print("/nA/n");
+}
+else 
+{ 
+print("/nB/n"); 
+}
+
