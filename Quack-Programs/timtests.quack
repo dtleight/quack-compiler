@@ -1,0 +1,14 @@
+define x = 3;
+define y = 2;
+define z = 1;
+
+
+define fun = lambda y:int. print(z);
+define fun2 = lambda a:int. print(a);
+define fun3 = lambda y:int. print(y);
+define fun4 = lambda c:int. c;
+
+fun(2);
+fun2(17);
+fun3(105);
+fun4(3);

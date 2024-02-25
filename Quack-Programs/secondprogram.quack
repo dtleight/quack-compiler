@@ -1,0 +1,16 @@
+ define a:int = 12;
+ define b:int = 18;
+ while (a != 0 && b != 0) 
+ {
+   if (a>b)
+   {
+   a=a%b;
+   }
+   else
+   { 
+   b=b%a;
+   }
+ }
+ print("The gcd = ");
+ print(a+b);
+ print("/n");

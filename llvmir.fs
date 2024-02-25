@@ -36,6 +36,7 @@ type LLVMtype =
   | Basic of string     // i32: Basic("i32")
   | Pointer of LLVMtype //i32*:  Pointer(Basic("i32"))
   | Array_t of int*LLVMtype  // [5 x i8], Array_t(5,Basic("i8"))
+  | Func_t of LLVMtype list*LLVMtype
   | Userstruct of string
   | Ellipsis  // special case for optional args, like printf(i8*,...)
   | Void_t
@@ -48,6 +49,7 @@ type LLVMexpr =
   | Register of string   // %r1
   | Global of string     // @str1
   | Label of string      // not really used
+  | Nullptr
   | Novalue     // default
 
 type Instruction =  
@@ -76,6 +78,7 @@ type Instruction =
   // simplified forms of getelementptr for array address and struct field
   | Arrayindex of string*int*LLVMtype*LLVMexpr*LLVMexpr
   | Structfield of string*LLVMtype*LLVMexpr*LLVMexpr
+ // | Typefield of string*(LLVMType*LLVMexpr)*
   // other llvm instructions not covered by above must be encoded as:
   | Verbatim of string //generic "other" instruction, default case, comments
 
@@ -263,6 +266,13 @@ let rec map(vec: Vec<'a>, f: 'a -> 'b): Vec<'b> =
     retVec.Add(f(x))
   retVec;;
   
+let trim(str:string) = 
+  str.[1..str.Length-2];;
+
+let rec listmap(vec: 'a list, f: 'a -> 'b): string =
+  //sprintf "(%s)" (trim(sprintf "%A" (vec |> List.map f)));; 
+  sprintf "(%s)" (String.concat ", " (vec |> List.map f));; 
+  
 let rec flatten(vec: Vec<'a>, initial: 'a) = 
   let mutable output = initial
   for x in vec do
@@ -281,74 +291,77 @@ let exprToString(expr: LLVMexpr)  =
     | Register(x) -> "%" + x;   // %r1
     | Global(x) -> "@" + x;     // @str1
     | Label(x) -> x;      // not really used
+    | Nullptr -> "null";
     | Novalue -> "default";;    // default
 
 let rec typeToString(typeExpr: LLVMtype) =
   match typeExpr with
     | Basic(x) -> x;
     | Pointer(x) -> typeToString(x) + "*";
-    | Array_t(len,x) -> "[ " + len.ToString() + " x " + typeToString(x) + "]";
+    | Array_t(len,x) -> sprintf  "[%d x %s]" len (typeToString(x));
     | Userstruct(x) -> x;
     | Ellipsis -> "Ellipsis";  // special case for optional args, like printf(i8*,...)
-    | Void_t -> "";
+    | Void_t -> "void";
+    | _ -> ""
     
 
 let instructionToString(instruction: Instruction) = 
   match instruction with
     // terminator instructions that ends a Basic Block: - Done
     | Ret(typeExpr, expr) -> sprintf "ret %s %s" (typeToString(typeExpr))  (exprToString(expr));
-    | Ret_noval -> "ret";
+    | Ret_noval -> "ret void";
     | Br_uc(label) -> sprintf "br label %s" ("%"+label);
-    | Bri1 (expr, label1, label2) -> sprintf "br i1 %s %s" ("%"+label1)  ("%"+label2);
+    | Bri1 (expr, label1, label2) -> sprintf "br i1 %s, label %s, label %s" (exprToString(expr)) ("%"+label1)  ("%"+label2);
     // memory ops: store i32 3, i32* %a, optional "align 4", type i32* is omitted
-    | Load(var, typeExpr, expr, None) -> (sprintf "%s = load %s. %s* %s" (%+var) (typeToString(typeExpr)) (typeToString(typeExpr)) (exprToString(expr))) 
-    | Load(var, typeExpr, expr, Some(post)) -> (sprintf "%s = load %s. %s* %s, %s" ("%" + var) (typeToString(typeExpr)) (typeToString(typeExpr)) (exprToString(expr))) post
-    | Store(typeExpr, expr1, expr2, Some(post)) -> sprintf "store %s %s, %s, %s" (typeToString(typeExpr))(exprToString(expr1)) (exprToString(expr2)) post
-    | Store(typeExpr, expr1, expr2, None) -> sprintf "store %s %s, %s" (typeToString(typeExpr))(exprToString(expr1)) (exprToString(expr2))
+    | Load(var, typeExpr, expr, None) -> (sprintf "%s = load %s, %s %s" ("%"+var) (typeToString(typeExpr)) (typeToString(Pointer(typeExpr))) (exprToString(expr))) 
+    | Load(var, typeExpr, expr, Some(post)) -> (sprintf "%s = load %s, %s %s, %s" ("%"+var) (typeToString(typeExpr)) (typeToString(Pointer(typeExpr))) (exprToString(expr))) post
+    | Store(typeExpr, expr1, expr2, Some(post)) -> sprintf "store %s %s, %s %s, %s" (typeToString(typeExpr))(exprToString(expr1)) (typeToString(Pointer(typeExpr))) (exprToString(expr2)) post
+    | Store(typeExpr, expr1, expr2, None) -> sprintf "store %s %s, %s %s" (typeToString(typeExpr)) (exprToString(expr1)) (typeToString(Pointer(typeExpr))) (exprToString(expr2))
     | Alloca(var, typeExpr, Some(post))-> sprintf "%s = alloca %s, %s" ("%"+var) (typeToString(typeExpr)) (post.ToString());
     | Alloca (var, typeExpr, None)-> sprintf "%s = alloca %s" ("%"+var) (typeToString(typeExpr));
     // ALU ops, always begins with a destination : %r1 = ...
-    | Binaryop(var, op, typeExpr, expr1, expr2) -> sprintf "%s = %s %s %s" ("%"+var) (exprToString(expr1)) op (exprToString(expr2));  
+    | Binaryop(var, op, typeExpr, expr1, expr2) -> sprintf "%s = %s %s %s, %s" ("%"+var) op (typeToString(typeExpr)) (exprToString(expr1)) (exprToString(expr2));  
     | Unaryop (var, op, None, typeExpr, expr1) ->  sprintf "%s = %s %s %s" ("%"+var) op (typeToString(typeExpr)) (exprToString(expr1));
     // casting operations like %r2 = zext i32 %r1 to i64
     | Cast(var, op, typeExpr, expr, typeExpr2) -> sprintf "%s = %s %s %s to %s" ("%"+var) op (typeToString(typeExpr))  (exprToString(expr)) (typeToString(typeExpr2));
     // comparison and selection ops, phi
-    | Icmp(var, op, typeExpr, dest, expr2) -> "%" + var + "= icmp " + op + " " + typeToString(typeExpr) + " %" + (exprToString(dest)) +  exprToString(expr2); //Not yet finished
-    | Fcmp(var, op, typeExpr, dest, expr2) -> "%" + var + "= fcmp " + op + " " + typeToString(typeExpr) + " %" + (exprToString(dest)) + exprToString(expr2); //Not yet finished
+    | Icmp(var, op, typeExpr, dest, expr2) -> sprintf "%s = icmp %s %s %s, %s" ("%" + var) op (typeToString(typeExpr)) (exprToString(dest)) (exprToString(expr2)); //Not yet finished
+    | Fcmp(var, op, typeExpr, dest, expr2) -> sprintf "%s = fcmp %s %s %s, %s" ("%" + var) op (typeToString(typeExpr)) (exprToString(dest)) (exprToString(expr2)); 
     | SelectTrue(var, typeExpr, expr1, expr2) -> "%" + var + " = select i1 true, " + typeToString(typeExpr) + " " + exprToString(expr1) + ", " + typeToString(typeExpr) + " " + exprToString(expr2);
+    //PHI Statements
     | Phi2(var, typeExpr, expr1, label1, expr2, label2) -> "%" + var + " = phi " + typeToString(typeExpr) + " [" + exprToString(expr1) + ", %" + label1 + "], [" + exprToString(expr2) + ", %" + label2 + "]";
     | Phi(var, typeExpr, list) -> "%" + var + " = phi " + typeToString(typeExpr); //%3 = phi i8 [1, %bb1], [2, %bb2], [3, %bb3] ;better to stick to Phi2
-    // function call: option dest,ret type, sprintf
-    | Call(_,_,_,_,_) -> "" //of Option<string>*LLVMtype*Conslist<LLVMtype>*string*Conslist<(LLVMtype*LLVMexpr)>
+    //Function calls
+    | Call(Some(prefix),typeExpr, typeList,func,args) -> sprintf "%s = call %s %s @%s%s" prefix (typeToString(typeExpr)) (listmap(typeList, fun x -> typeToString(x))) func (listmap(args, fun (x,y) -> sprintf "%s %s" (typeToString(x)) (exprToString(y))))
+    | Call(None,typeExpr, typeList,func,args) -> sprintf "call %s %s @%s%s" (typeToString(typeExpr)) (listmap(typeList, fun x -> typeToString(x))) func (listmap(args, fun (x,y) -> sprintf "%s %s" (typeToString(x)) (exprToString(y))))
     // simplified forms of getelementptr for array address and struct field
     | Arrayindex(var, value, typeExpr, expr1, expr2) -> "%" + var + " = getelementptr inbounds [" + (value.ToString()) + " x " + (typeToString(typeExpr)) + "], [" + (value.ToString()) + " x " + (typeToString(typeExpr)) + "]* " +  (exprToString(expr1)) + ",  i64 0, i64 " + (exprToString(expr2));
-    | Structfield(var, typeExpr, expr1, expr2) -> "%" + var + " = getelementptr inbounds %" + (typeToString(typeExpr)) + ", %" + (typeToString(typeExpr)) + "* " + (exprToString(expr1)) + " i32 0, i32" + (exprToString(expr2));
+    | Structfield(var, typeExpr, expr1, expr2) -> sprintf "%s = getelementptr inbounds %s, %s %s, i64 %s, i64 %s" ("%"+var) (typeToString(typeExpr)) (typeToString(Pointer(typeExpr))) (exprToString(expr1)) (exprToString(expr2)) (exprToString(expr2))
+    //| Typefield(var, allocExpr, bufferOffset, fieldOffset) -> sprintf "%s = getelementptr inbounds %s,"
     | Verbatim(content) -> content; //generic "other" instruction, default case, comments
     | _ -> "Instruction";;
   
 let declarationToString(declaration: LLVMdeclaration) =
   match declaration with
-    | Globalconst(name,typeExpr,expr,strPos) -> (sprintf "%s %s %s %s" name (typeToString(typeExpr)) "" "");
+    | Globalconst(name,typeExpr,expr, Some(strPos)) -> (sprintf "@%s =  constant %s c\"%s\", %s" name (typeToString(typeExpr)) (exprToString(expr)) strPos);
+    | Globalconst(name,typeExpr,expr, None) -> (sprintf "@%s =  constant %s c\"%s\"" name (typeToString(typeExpr)) (exprToString(expr)));
     | Externfunc(typeExpr,name,types) -> (sprintf "%s %s %s" (typeToString(typeExpr)) name (stringify(map(types, fun x -> typeToString(x)),"[","]"))) ;
     | Structdec(name,types) -> 
-        sprintf "%s %s" name (stringify(map(types, fun x -> typeToString(x)),"[","]"));
+        sprintf "%sstruct.%s =  type %s" "%" name (stringify(map(types, fun x -> typeToString(x)),"{","}"));
     | Verbatim_dec(content) -> content;
     
 let functionToString(func: LLVMFunction) =
-  sprintf "define %s @%s%s\n{\n%s}\n" (typeToString(func.return_type)) func.name (stringify(map(func.formal_args, fun (a,b)-> sprintf "%s:%s" (typeToString(a)) b),"(",")")) (flatten(map(func.body, (fun x-> sprintf "\t%s:\n%s\n" (x.label) (flatten(map(x.body, fun y-> (sprintf "\t\t%s\n" (instructionToString(y)))),"")))),""));;
+  sprintf "define %s @%s%s\n{\n%s}\n" (typeToString(func.return_type)) func.name (stringify(map(func.formal_args, fun (a,b)-> sprintf "%s %s%s" (typeToString(a)) "%" b),"(",")")) (flatten(map(func.body, (fun x-> sprintf "\t%s:\n%s\n" (x.label) (flatten(map(x.body, fun y-> (sprintf "\t\t%s\n" (instructionToString(y)))),"")))),""));;
   
 let programToString(program: LLVMprogram) =
   let declarations = flatten(map(program.global_declarations, fun x -> sprintf "%s\n" (declarationToString(x))),"")
   let functions = flatten(map(program.functions, fun x -> sprintf "%s\n" (functionToString(x))),"")
   sprintf "%s\n\n%s\n\n%s" program.preamble declarations functions;;
-
- let declarations = Vec<LLVMdeclaration>();;
- declarations.Add(Globalconst("str1",Array_t(6,Basic("i8")),Sconst("hello\00"),Some("align 1")));;
- declarations.Add(Structdec("bigstruct",Vec([Basic("i32");Basic("i8");Basic("double")])));
- let prog = 
+  
+let prog = 
   {
-    preamble = "target triple = \"x86_64-pc-windows-msvc19.33.31629\"";
-    global_declarations = declarations;
+    preamble = "target triple = \"x86_64-pc-windows-msvc19.33.31629\"\ndeclare void @lambda7c_printint(i32)\ndeclare void @lambda7c_printfloat(double)\ndeclare void @lambda7c_printstr(i8*)\ndeclare i32 @lambda7c_cin()\ndeclare i8* @malloc(i32)\ndeclare void @free(i8*)\ndeclare i8* @memcpy(i8*, i8*, i32)";
+    global_declarations = Vec<LLVMdeclaration>();
     functions = Vec<LLVMFunction>();
     postamble = ""
   };;

@@ -1,0 +1,35 @@
+// number guessing game (requires getint intrinsic function)
+
+print("Think of a number between 1 and 100 and I will try to guess it/n");
+print(" ...");
+print("/n");
+define min = 1;
+define max = 100;
+define guess = 0;
+define response:int = 1;
+while ( min <= max && response != 0) {
+  guess = min+max;
+  guess = guess / 2;
+  print("Is your number ");
+  print(guess);
+  print(" (enter 0 if yes), or is it higher(1) or lower(2):");
+  print("test");
+  response = input();
+  if (response eq 1)
+  {
+   min = guess + 1; 
+  } 
+  else 
+  {
+    max = guess;
+  }// if-elses
+}//while
+//print(response);
+//if(response == 0)
+//{
+// print("I guessed your number!/n"); 
+//}
+//else 
+//{ 
+//  print("YOU CHEATED! HUMANS CAN NEVER BE TRUSTED. ACTIVATING AREA 51!/n"); 
+//}
