@@ -1,6 +1,26 @@
 # quack-compiler
 This is a compiler written primarily in F# for my CSC 124 class at Hofstra. Quack as a programming language is built to closely emulate the syntax of languages like Java.
 
+                                            ░░░░░░░░░░
+                                          ░░██████████░░
+                                        ░░██████████████░░
+                                        ░░████████░░░░██░░░░░░░░░░
+                            ░░          ░░████████░░░░██░░██████░░
+                          ░░██░░        ░░██████████████░░██████░░
+                          ░░████░░      ░░██████████████░░░░░░░░
+                        ░░████████░░      ░░████████████░░
+                        ░░████████░░░░░░░░░░░░████████░░
+                        ░░████████░░████████████████████░░
+                        ░░████████████████████████████████░░
+                        ░░████████████████████████████████░░
+                        ░░████████████████████████████████░░
+                        ░░████████████████████████████████░░
+                        ░░████████████████████████████████░░
+                        ░░██████████████████████████████░░
+                          ░░██████████████████████████░░
+                            ░░░░░░████████████████░░░░
+                                  ░░░░░░░░░░░░░░░░
+
 ## Instructions and Operating the Compiler
 The quack compiler has several scripts to increase the ease of use and developer efficiency when working with the compiler
 
